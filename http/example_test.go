@@ -59,14 +59,8 @@ func ExampleClient_Delete() {
 		log.Fatal(err)
 	}
 
-	// Expected response structure
-	dummyResponse := struct {
-		Id    int
-		Title string
-	}{}
-
 	// Actual call
-	err = client.Delete(context.Background(), "http://localhost:8000", &dummyResponse)
+	err = client.Delete(context.Background(), "http://localhost:8000")
 
 	if err != nil {
 		log.Fatal(err)

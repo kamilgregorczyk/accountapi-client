@@ -215,12 +215,10 @@ func TestClient_Delete(t *testing.T) {
 	defer server.Close()
 
 	t.Logf("When calling DELETE")
-	var dummyResponse DummyResponse
-	err := client.Delete(context.Background(), server.URL, &dummyResponse)
+	err := client.Delete(context.Background(), server.URL)
 
 	t.Logf("Should return DummyResponse")
 	assert.NoError(t, err)
-	assert.Equal(t, DummyResponse{Title: "Jan", Id: 1}, dummyResponse)
 	assert.Equal(t, 1, callCount["/"])
 }
 
@@ -255,42 +253,13 @@ func TestClient_DeleteWithHttpError(t *testing.T) {
 		client, _ := NewClient(config)
 
 		t.Logf("When calling DELETE")
-		var dummyResponse DummyResponse
-		err := client.Delete(context.Background(), testCase.Url, &dummyResponse)
+		err := client.Delete(context.Background(), testCase.Url)
 
 		t.Logf("Should return ClientHttpError with statusCode %d", testCase.StatusCode)
 		assert.EqualError(t, err, testCase.ExpectedError.Error())
-		assert.Equal(t, DummyResponse{}, dummyResponse)
 		assert.Equal(t, testCase.CallCount, callCount[fmt.Sprintf("/%d", testCase.StatusCode)])
 
 	}
-}
-
-func TestClient_DeleteWithResponseBodyParsingError(t *testing.T) {
-	config := validClientConfig
-	t.Logf("Given valid ClientConfig retries=%+v timeout=%s headers=%+v", config.Retries, config.Timeout, config.Headers)
-
-	t.Logf("And given Client")
-	client, _ := NewClient(config)
-
-	t.Logf("And HTTP server returning 200 status")
-	callCount := make(map[string]int)
-	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, "aa"))
-
-	defer server.Close()
-
-	t.Logf("When calling DELETE")
-	var dummyResponse DummyResponse
-	err := client.Delete(context.Background(), server.URL, &dummyResponse)
-
-	t.Logf("Should return ClientError with parsing message")
-	assert.EqualError(t, err, (&ClientError{Message: "parsing error", Url: server.URL, Err: &json.UnmarshalTypeError{
-		Value:  "string",
-		Type:   reflect.TypeOf(dummyResponse),
-		Offset: 4,
-	}}).Error())
-	assert.Equal(t, DummyResponse{}, dummyResponse)
-	assert.Equal(t, 1, callCount["/"])
 }
 
 func TestClient_DeleteWithDialError(t *testing.T) {
@@ -307,14 +276,12 @@ func TestClient_DeleteWithDialError(t *testing.T) {
 	defer server.Close()
 
 	t.Logf("When calling DELETE")
-	var dummyResponse DummyResponse
-	err := client.Delete(context.Background(), "http://localhost:3322/asdasd", &dummyResponse)
+	err := client.Delete(context.Background(), "http://localhost:3322/asdasd")
 
 	t.Logf("Should return ClientError with network message")
 	var expectedError *ClientError
 	assert.True(t, errors.As(err, &expectedError))
 	assert.Equal(t, "network error", expectedError.Message)
-	assert.Equal(t, DummyResponse{}, dummyResponse)
 	assert.Equal(t, 0, callCount["/"])
 }
 
