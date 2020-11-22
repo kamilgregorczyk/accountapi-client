@@ -2,7 +2,7 @@ package main
 
 import (
 	"accountapi-client/http/retry"
-	"accountapi-client/inventory"
+	"accountapi-client/account"
 	"context"
 	"log"
 	"net/url"
@@ -10,12 +10,12 @@ import (
 )
 
 func main() {
-	inventoryClient, err := inventory.NewClient(inventory.ClientConfig{
+	accountClient, err := account.NewClient(account.ClientConfig{
 		Timeout: time.Second,
 		Logging: true,
 		Url: url.URL{
 			Scheme: "https",
-			Host:   "inventory.raspicluster.pl"},
+			Host:   "account.raspicluster.pl"},
 		RetriesConfig: retry.RetriesConfig{
 			MaxRetries: 3,
 			Delay:      time.Second,
@@ -25,19 +25,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	items, err := inventoryClient.GetItems(context.Background())
+	items, err := accountClient.GetItems(context.Background())
 	if err != nil {
 		log.Panicf(err.Error())
 	} else {
 		log.Printf("Items: %+v", items)
-		item, err := inventoryClient.GetItem(context.Background(), items[0].Id)
+		item, err := accountClient.GetItem(context.Background(), items[0].Id)
 		if err != nil {
 			log.Panicf(err.Error())
 		} else {
 			log.Printf("Item: %+v", item)
 		}
 
-		item2, err := inventoryClient.CreateItem(context.Background(), inventory.CreateInventory{Name: "aa", Description: "cc"})
+		item2, err := accountClient.CreateItem(context.Background(), account.CreateInventory{Name: "aa", Description: "cc"})
 		if err != nil {
 			log.Panicf(err.Error())
 		} else {

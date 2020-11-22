@@ -1,4 +1,4 @@
-package inventory
+package account
 
 type Inventory struct {
 	Id          int    `json:"id"`

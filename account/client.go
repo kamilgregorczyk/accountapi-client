@@ -1,4 +1,4 @@
-package inventory
+package account
 
 import (
 	"accountapi-client/http"
@@ -41,7 +41,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 
 func (c *Client) GetItems(ctx context.Context) ([]Inventory, error) {
 	var items []Inventory
-	path := fmt.Sprintf("%s/inventory", c.Url.String())
+	path := fmt.Sprintf("%s/account", c.Url.String())
 	err := c.Client.Get(ctx, path, &items)
 	return items, err
 
@@ -49,14 +49,14 @@ func (c *Client) GetItems(ctx context.Context) ([]Inventory, error) {
 
 func (c *Client) GetItem(ctx context.Context, id int) (Inventory, error) {
 	var item Inventory
-	path := fmt.Sprintf("%s/inventory/%d", c.Url.String(), id)
+	path := fmt.Sprintf("%s/account/%d", c.Url.String(), id)
 	err := c.Client.Get(ctx, path, &item)
 	return item, err
 }
 
 func (c *Client) CreateItem(ctx context.Context, createInventory CreateInventory) (Inventory, error) {
 	var item Inventory
-	path := fmt.Sprintf("%s/inventory", c.Url.String())
+	path := fmt.Sprintf("%s/account", c.Url.String())
 	err := c.Client.Post(ctx, path, createInventory, &item)
 	return item, err
 }
