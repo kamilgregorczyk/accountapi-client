@@ -66,20 +66,3 @@ func (c *Client) Delete(ctx context.Context, id string, version int64) error {
 	err = c.Client.Delete(ctx, path.String())
 	return err
 }
-
-//
-//func (c *Client) GetItems(ctx context.Context) ([]Account, error) {
-//	var items []Account
-//	path := fmt.Sprintf("%s/account", c.Url.String())
-//	err := c.Client.Get(ctx, path, &items)
-//	return items, err
-//
-//}
-//
-//func (c *Client) GetItem(ctx context.Context, id int) (Account, error) {
-//	var item Account
-//	path := fmt.Sprintf("%s/account/%d", c.Url.String(), id)
-//	err := c.Client.Get(ctx, path, &item)
-//	return item, err
-//}
-//
