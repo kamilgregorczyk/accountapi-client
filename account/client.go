@@ -41,23 +41,30 @@ func NewClient(config ClientConfig) (*Client, error) {
 }
 
 func (c *Client) Create(ctx context.Context, account *Account) (*Account, error) {
+	path, err := url.ParseRequestURI(fmt.Sprintf("%s/v1/organisation/accounts", c.Url.String()))
+	if err != nil {
+		return nil, err
+	}
 	var accountData AccountData
-	path := fmt.Sprintf("%s/v1/organisation/accounts", c.Url.String())
-	err := c.Client.Post(ctx, path, &AccountData{account}, &accountData)
+	err = c.Client.Post(ctx, path.String(), &AccountData{account}, &accountData)
 	return accountData.Data, err
 }
 
 func (c *Client) Fetch(ctx context.Context, id string) (*Account, error) {
+	path, err := url.ParseRequestURI(fmt.Sprintf("%s/v1/organisation/accounts/%s", c.Url.String(), id))
+	if err != nil {
+		return nil, err
+	}
+
 	var accountData AccountData
-	path := fmt.Sprintf("%s/v1/organisation/accounts/%s", c.Url.String(), id)
-	err := c.Client.Get(ctx, path, &accountData)
+	err = c.Client.Get(ctx, path.String(), &accountData)
 	return accountData.Data, err
 }
 
 func (c *Client) Delete(ctx context.Context, id string, version int64) error {
 	path, err := url.ParseRequestURI(fmt.Sprintf("%s/v1/organisation/accounts/%s", c.Url.String(), id))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	query := path.Query()
