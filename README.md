@@ -1,1 +1,1 @@
-![Go](https://github.com/kamilgregorczyk/inventory-client/workflows/Go/badge.svg)
+![Go](https://github.com/kamilgregorczyk/accountapi-client/workflows/Go/badge.svg)
