@@ -29,7 +29,7 @@ func main() {
 
 	accountId, _ := uuid.NewUUID()
 	organisationId, _ := uuid.NewUUID()
-	createResponse, err := accountClient.Create(context.Background(), &account.CreateAccountRequest{Data: &account.Account{
+	createResponse, err := accountClient.Create(context.Background(), &account.CreateAccountRequest{Account: &account.Account{
 		Type:           "accounts",
 		Id:             accountId.String(),
 		OrganisationId: organisationId.String(),
@@ -44,22 +44,22 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%+v", createResponse.Data)
+	log.Printf("%+v", createResponse.Account)
 
-	fetchResponse, err := accountClient.Fetch(context.Background(), &account.FetchAccountRequest{Id: createResponse.Data.Id})
+	fetchResponse, err := accountClient.Fetch(context.Background(), &account.FetchAccountRequest{Id: createResponse.Account.Id})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%+v", fetchResponse.Data)
+	log.Printf("%+v", fetchResponse.Account)
 
-	err = accountClient.Delete(context.Background(), &account.DeleteAccountRequest{Id: fetchResponse.Data.Id, Version: fetchResponse.Data.Version})
+	err = accountClient.Delete(context.Background(), &account.DeleteAccountRequest{Id: fetchResponse.Account.Id, Version: fetchResponse.Account.Version})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Printf("Account should be deleted, lets check...")
 
-	_, err = accountClient.Fetch(context.Background(), &account.FetchAccountRequest{Id: fetchResponse.Data.Id})
+	_, err = accountClient.Fetch(context.Background(), &account.FetchAccountRequest{Id: fetchResponse.Account.Id})
 	if err != nil {
 		log.Println("Account does not exist!")
 	}
@@ -69,6 +69,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%d", len(listResponse.Data))
+	log.Printf("%d", len(listResponse.Accounts))
 
 }

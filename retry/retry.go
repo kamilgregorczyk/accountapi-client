@@ -30,7 +30,7 @@ type RetriesConfig struct {
 // If RetriesConfig.MaxRetries is zero or below, it returns MaxRetriesZeroError
 // If RetriesConfig.Delay is zero or below, it returns DelayZeroError
 // If RetriesConfig.Factor is zero or below, it returns FactorZeroError
-func NewRetries(config RetriesConfig) (*Retry, error) {
+func NewRetries(config *RetriesConfig) (*Retry, error) {
 	if config.MaxRetries <= 0 {
 		return nil, MaxRetriesZeroError
 	}
@@ -46,7 +46,7 @@ func NewRetries(config RetriesConfig) (*Retry, error) {
 
 // Constructed with NewRetry, contains Execute function for running any action with retries
 type Retry struct {
-	config RetriesConfig
+	config *RetriesConfig
 }
 
 type RetryFunc func() error

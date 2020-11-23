@@ -14,10 +14,10 @@ func ExampleNewClient() {
 	config := account.ClientConfig{
 		Timeout: time.Second,
 		Logging: true,
-		Url: url.URL{
+		Url: &url.URL{
 			Scheme: "http",
 			Host:   "localhost:8080"},
-		RetriesConfig: retry.RetriesConfig{
+		RetriesConfig: &retry.RetriesConfig{
 			MaxRetries: 3,
 			Delay:      time.Second,
 			Factor:     1.5,
@@ -33,10 +33,10 @@ func ExampleClient_Fetch() {
 	config := account.ClientConfig{
 		Timeout: time.Second,
 		Logging: true,
-		Url: url.URL{
+		Url: &url.URL{
 			Scheme: "http",
 			Host:   "localhost:8080"},
-		RetriesConfig: retry.RetriesConfig{
+		RetriesConfig: &retry.RetriesConfig{
 			MaxRetries: 3,
 			Delay:      time.Second,
 			Factor:     1.5,
@@ -66,10 +66,10 @@ func ExampleClient_Create() {
 	config := account.ClientConfig{
 		Timeout: time.Second,
 		Logging: true,
-		Url: url.URL{
+		Url: &url.URL{
 			Scheme: "http",
 			Host:   "localhost:8080"},
-		RetriesConfig: retry.RetriesConfig{
+		RetriesConfig: &retry.RetriesConfig{
 			MaxRetries: 3,
 			Delay:      time.Second,
 			Factor:     1.5,
@@ -84,7 +84,7 @@ func ExampleClient_Create() {
 	}
 
 	// Create account
-	createRequest := account.CreateAccountRequest{Data: &account.Account{Id: "fb1ff76f-f360-403f-a324-4bfe2f215895"}}
+	createRequest := account.CreateAccountRequest{Account: &account.Account{Id: "fb1ff76f-f360-403f-a324-4bfe2f215895"}}
 	createResponse, err := accountClient.Create(context.Background(), &createRequest)
 
 	if err != nil {
@@ -99,10 +99,10 @@ func ExampleClient_List() {
 	config := account.ClientConfig{
 		Timeout: time.Second,
 		Logging: true,
-		Url: url.URL{
+		Url: &url.URL{
 			Scheme: "http",
 			Host:   "localhost:8080"},
-		RetriesConfig: retry.RetriesConfig{
+		RetriesConfig: &retry.RetriesConfig{
 			MaxRetries: 3,
 			Delay:      time.Second,
 			Factor:     1.5,
@@ -132,10 +132,10 @@ func ExampleClient_Delete() {
 	config := account.ClientConfig{
 		Timeout: time.Second,
 		Logging: true,
-		Url: url.URL{
+		Url: &url.URL{
 			Scheme: "http",
 			Host:   "localhost:8080"},
-		RetriesConfig: retry.RetriesConfig{
+		RetriesConfig: &retry.RetriesConfig{
 			MaxRetries: 3,
 			Delay:      time.Second,
 			Factor:     1.5,

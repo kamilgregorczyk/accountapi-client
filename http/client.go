@@ -26,7 +26,7 @@ import (
 
 type ClientConfig struct {
 	Timeout time.Duration
-	Retries retry.RetriesConfig
+	Retries *retry.RetriesConfig
 	Headers Headers
 	Logging bool
 }

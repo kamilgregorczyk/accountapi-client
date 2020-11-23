@@ -16,7 +16,7 @@ import (
 )
 
 var validClientConfig = ClientConfig{
-	Retries: retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
+	Retries: &retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
 	Timeout: time.Second,
 	Headers: Headers{
 		"Content-Type": "application/json",
@@ -71,7 +71,7 @@ func TestNewClientWithInValidConfig(t *testing.T) {
 
 		t.Logf("Given valid ClientConfig retries=%+v timeout=%s headers=%+v", testCase.Retries, testCase.Timeout, testCase.Headers)
 		config := ClientConfig{
-			Retries: testCase.Retries,
+			Retries: &testCase.Retries,
 			Timeout: testCase.Timeout,
 			Headers: testCase.Headers,
 		}

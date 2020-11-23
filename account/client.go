@@ -31,12 +31,12 @@ import (
 type ClientConfig struct {
 	Timeout       time.Duration
 	Logging       bool
-	Url           url.URL
-	RetriesConfig retry.RetriesConfig
+	Url           *url.URL
+	RetriesConfig *retry.RetriesConfig
 }
 
 type Client struct {
-	Url    url.URL
+	Url    *url.URL
 	Client *http.Client
 }
 
