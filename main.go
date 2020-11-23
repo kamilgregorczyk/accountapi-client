@@ -27,12 +27,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	accountId, err := uuid.NewUUID()
+	accountId, _ := uuid.NewUUID()
+	organisationId, _ := uuid.NewUUID()
 	account, err := accountClient.Create(context.Background(), &account.Account{
 		Type:           "accounts",
 		Id:             accountId.String(),
-		OrganisationId: "ad27e265-9605-4b4b-a0e5-3003ea9cc4dc",
-		Attributes: &account.AccountAttributes{
+		OrganisationId: organisationId.String(),
+		Attributes: &account.Attributes{
 			Country:      "PL",
 			BaseCurrency: "PLN",
 			BankId:       "400300",

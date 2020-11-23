@@ -1,8 +1,8 @@
 package retry
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
-	"net/http"
 	"testing"
 	"time"
 )
@@ -70,19 +70,17 @@ func TestRetryWithSuccessAtFirstTry(t *testing.T) {
 
 	t.Logf("And given a func to run")
 	var callCount int
-	expectedResponse := http.Response{}
-	funcToRetry := func() (*http.Response, error) {
+	funcToRetry := func() error {
 		callCount++
-		return &expectedResponse, nil
+		return nil
 	}
 
 	t.Logf("When executing a func")
-	response, err := retry.Execute(funcToRetry)
+	err := retry.Execute(funcToRetry)
 
 	t.Logf("Should call only once and not return any errors")
 	assert.Equal(t, callCount, 1)
 	assert.NoError(t, err)
-	assert.Equal(t, &expectedResponse, response)
 }
 
 func TestRetryWithInitialFailuresAndThenSuccess(t *testing.T) {
@@ -102,24 +100,22 @@ func TestRetryWithInitialFailuresAndThenSuccess(t *testing.T) {
 
 		t.Logf("And given a func to run")
 		var callCount int
-		expectedResponse := http.Response{}
 		expectedCallCount := retryCount + 1
-		funcToRetry := func() (*http.Response, error) {
+		funcToRetry := func() error {
 			if retryCount > callCount {
 				callCount++
-				return &expectedResponse, &RetryableError{}
+				return &RetryableError{}
 			}
 			callCount++
-			return &expectedResponse, nil
+			return nil
 		}
 
 		t.Logf("When executing a func")
-		response, err := retry.Execute(funcToRetry)
+		err := retry.Execute(funcToRetry)
 
 		t.Logf("Should call function %d times and not return any errors", expectedCallCount)
 		assert.Equal(t, callCount, expectedCallCount)
 		assert.NoError(t, err)
-		assert.Equal(t, &expectedResponse, response)
 	}
 
 }
@@ -139,19 +135,18 @@ func TestRetryWithConstantFailures(t *testing.T) {
 
 	t.Logf("And given a func to run")
 	var callCount int
-	expectedResponse := http.Response{}
-	funcToRetry := func() (*http.Response, error) {
+	expectedError := errors.New("something is wrong")
+	funcToRetry := func() error {
 		callCount++
-		return &expectedResponse, &RetryableError{}
+		return &RetryableError{Err: expectedError}
 	}
 
 	t.Logf("When executing a func")
-	response, err := retry.Execute(funcToRetry)
+	err := retry.Execute(funcToRetry)
 
-	t.Logf("Should call function %d times and return errors", 4)
+	t.Logf("Should call function %d times and return unwrapped error", 4)
 	assert.Equal(t, callCount, 4)
-	assert.Error(t, err)
-	assert.Equal(t, &expectedResponse, response)
+	assert.EqualError(t, err, expectedError.Error())
 }
 
 func TestExponentialBackoff(t *testing.T) {

@@ -45,8 +45,8 @@ func (c *Client) Create(ctx context.Context, account *Account) (*Account, error)
 	if err != nil {
 		return nil, err
 	}
-	var accountData AccountData
-	err = c.Client.Post(ctx, path.String(), &AccountData{account}, &accountData)
+	var accountData Data
+	err = c.Client.Post(ctx, path, &Data{account}, &accountData)
 	return accountData.Data, err
 }
 
@@ -56,8 +56,8 @@ func (c *Client) Fetch(ctx context.Context, id string) (*Account, error) {
 		return nil, err
 	}
 
-	var accountData AccountData
-	err = c.Client.Get(ctx, path.String(), &accountData)
+	var accountData Data
+	err = c.Client.Get(ctx, path, &accountData)
 	return accountData.Data, err
 }
 
@@ -70,6 +70,6 @@ func (c *Client) Delete(ctx context.Context, id string, version int64) error {
 	query := path.Query()
 	query.Set("version", strconv.FormatInt(version, 10))
 	path.RawQuery = query.Encode()
-	err = c.Client.Delete(ctx, path.String())
+	err = c.Client.Delete(ctx, path)
 	return err
 }

@@ -19,13 +19,13 @@ func ExampleRetry_Execute() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	retry.Execute(func() (*http.Response, error) {
+	retry.Execute(func() error {
 		response, err := http.Get("http://localhost")
 		// We need retries only on 500s and higher
 		if response.StatusCode >= 500 {
-			return response, &retries.RetryableError{Err: err}
+			return &retries.RetryableError{Err: err}
 		}
-		return response, err
+		return err
 	})
 }
 

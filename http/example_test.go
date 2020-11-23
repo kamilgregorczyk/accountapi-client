@@ -5,6 +5,7 @@ import (
 	"accountapi-client/http/retry"
 	"context"
 	"log"
+	"net/url"
 	"time"
 )
 
@@ -31,9 +32,10 @@ func ExampleClient_Get() {
 		Id    int
 		Title string
 	}{}
+	toCall, _ := url.Parse("http://localhost:8000/test")
 
 	// Actual call
-	err = client.Get(context.Background(), "http://localhost:8000", &dummyResponse)
+	err = client.Get(context.Background(), toCall, &dummyResponse)
 
 	if err != nil {
 		log.Fatal(err)
@@ -58,9 +60,10 @@ func ExampleClient_Delete() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	toCall, _ := url.Parse("http://localhost:8000/test")
 
 	// Actual call
-	err = client.Delete(context.Background(), "http://localhost:8000")
+	err = client.Delete(context.Background(), toCall)
 
 	if err != nil {
 		log.Fatal(err)
@@ -95,9 +98,10 @@ func ExampleClient_Post() {
 		Id    int
 		Title string
 	}{}
+	toCall, _ := url.Parse("http://localhost:8000/test")
 
 	// Actual call
-	err = client.Post(context.Background(), "http://localhost:8000", &dummyRequest, &dummyResponse)
+	err = client.Post(context.Background(), toCall, &dummyRequest, &dummyResponse)
 
 	if err != nil {
 		log.Fatal(err)

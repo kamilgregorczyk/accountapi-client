@@ -1,9 +1,8 @@
-// Package that provides functionality of retries to http clients with delays
-// calculated based on exponential backoff strategy.
+// Package that provides functionality of retries with delays calculated based on exponential backoff strategy.
 //
 // The NewRetries function creates new Retry with based on RetryConfig with validation.
 //
-// The Execute function should be called whenever caller needs to run an http query with eventual retries.
+// The Execute function should be called whenever caller needs to run an action with eventual retries.
 // Caller has to provide the logic that will be retried with RetryFunc.
 //
 // In order for Retry to execute again provided RetryFunc, the caller has to return RetryableError,
@@ -18,7 +17,6 @@ package retry
 import (
 	"errors"
 	"math"
-	"net/http"
 	"time"
 )
 
@@ -46,31 +44,41 @@ func NewRetries(config RetriesConfig) (*Retry, error) {
 	return &Retry{config: config}, nil
 }
 
-// Constructed with NewRetry, contains Execute function for running HTTP requests with retries
+// Constructed with NewRetry, contains Execute function for running any action with retries
 type Retry struct {
 	config RetriesConfig
 }
 
-type RetryFunc func() (*http.Response, error)
+type RetryFunc func() error
 
-// Runs HTTP requests with retries
+// Runs pro
 // In order for Execute to run again provided RetryFunc, the caller has to return RetryableError,
 // otherwise the execution will be treated as successfully no matter it error of other type is returned or not
 // (as some errors are not worth to retry)
 //
 // The delay between retries is calculated based on a simple exponential-backoff equation: delay * factor^currentTry
 // Providing delay of 1 second, factor 2.0  and maximum number of retires will retry in 1s, 3s and 7s of delay between runs
-func (r *Retry) Execute(runnable RetryFunc) (*http.Response, error) {
+func (r *Retry) Execute(runnable RetryFunc) error {
 	var tryCount int
 	for {
-		response, err := runnable()
-		if err == nil || tryCount >= r.config.MaxRetries {
-			return response, err
+		err := runnable()
+		if err == nil {
+			return nil
 		}
 
 		var retryError *RetryableError
-		if !errors.As(err, &retryError) {
-			return response, err
+		isRetryableError := errors.As(err, &retryError)
+
+		if tryCount >= r.config.MaxRetries {
+			if isRetryableError {
+				return errors.Unwrap(err)
+			} else {
+				return err
+			}
+		}
+
+		if !isRetryableError {
+			return err
 		}
 
 		tryCount++

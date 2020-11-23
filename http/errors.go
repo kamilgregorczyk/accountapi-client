@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"fmt"
+	"net/url"
 )
 
 // Errors thrown by NewClient when ConfigClient has errors
@@ -12,9 +13,10 @@ var (
 
 // Throw by the Client on unexpected non-http related issues like parsing, dialing or tls handshake issues
 type ClientError struct {
-	Url     string
+	Url     *url.URL
 	Message string
 	Err     error
+	IsRetryable bool
 }
 
 func (e *ClientError) Error() string {
@@ -27,10 +29,12 @@ func (e *ClientError) Unwrap() error {
 
 // Throw by the Client on server-side http errors, it is returned on anything beyond or equal to HTTP-400
 type ClientHttpError struct {
-	Url        string
-	StatusCode int
+	Url          *url.URL
+	StatusCode   int
+	ResponseBody []byte
+	IsRetryable bool
 }
 
 func (e *ClientHttpError) Error() string {
-	return fmt.Sprintf("failed to call %s due to HTTP error %d", e.Url, e.StatusCode)
+	return fmt.Sprintf("failed to call %s due to HTTP error %d with body `%s`", e.Url, e.StatusCode, e.ResponseBody)
 }

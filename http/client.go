@@ -16,9 +16,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	corehttp "net/http"
+	"net/url"
 	"time"
 )
 
@@ -71,70 +73,68 @@ func NewClient(config ClientConfig) (*Client, error) {
 // In case of network, parsing or io error (non http related) it will return ClientError.
 //
 // In case of an http related error (>400 status code) it will return ClientHttpError along with returned status code.
-func (c *Client) Get(ctx context.Context, url string, responseBody interface{}) error {
+func (c *Client) Get(ctx context.Context, url *url.URL, responseBody interface{}) error {
 	method := "GET"
 	request, err := c.createRequest(ctx, method, url, nil)
 	if err != nil {
 		return err
 	}
 
-	response, err := c.executeWithRetry(request)
+	err = c.executeWithRetry(request, responseBody)
 	if err != nil {
 		return err
 	}
 
-	return readResponse(response, err, url, responseBody)
+	return nil
 }
 
-// Runs GET HTTP query for provided url, responseBody (pointer) will be written by json.Unmarshal.
+// Runs DELETE HTTP query for provided url, responseBody (pointer) will be written by json.Unmarshal.
 //
 // In case of network, parsing or io error (non http related) it will return ClientError.
 //
 // In case of an http related error (>400 status code) it will return ClientHttpError along with returned status code.
-func (c *Client) Delete(ctx context.Context, url string) error {
+func (c *Client) Delete(ctx context.Context, url *url.URL) error {
 	method := "DELETE"
 	request, err := c.createRequest(ctx, method, url, nil)
 	if err != nil {
 		return err
 	}
 
-	response, err := c.executeWithRetry(request)
+	err = c.executeWithRetry(request, nil)
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
-
 	return nil
 }
 
-// Runs GET HTTP query for provided url, responseBody (pointer) will be written by json.Unmarshal.
+// Runs POST HTTP query for provided url, responseBody (pointer) will be written by json.Unmarshal.
 //
 // In case of network, parsing or io error (non http related) it will return ClientError.
 //
 // In case of an http related error (>400 status code) it will return ClientHttpError along with returned status code.
-func (c *Client) Post(ctx context.Context, url string, requestBody interface{}, responseBody interface{}) error {
+func (c *Client) Post(ctx context.Context, url *url.URL, requestBody interface{}, responseBody interface{}) error {
 	method := "POST"
 	request, err := c.createRequest(ctx, method, url, requestBody)
 	if err != nil {
 		return err
 	}
 
-	response, err := c.executeWithRetry(request)
+	err = c.executeWithRetry(request, responseBody)
 	if err != nil {
 		return err
 	}
 
-	return readResponse(response, err, url, responseBody)
+	return nil
 }
 
-func (c *Client) createRequest(context context.Context, method string, url string, requestBody interface{}) (resp *corehttp.Request, err error) {
+func (c *Client) createRequest(context context.Context, method string, url *url.URL, requestBody interface{}) (resp *corehttp.Request, err error) {
 	marshaledBody, err := json.Marshal(requestBody)
 
 	if err != nil {
 		return nil, &ClientError{Message: "body parse error", Url: url, Err: err}
 	}
 
-	req, err := corehttp.NewRequestWithContext(context, method, url, bytes.NewBuffer(marshaledBody))
+	req, err := corehttp.NewRequestWithContext(context, method, url.String(), bytes.NewBuffer(marshaledBody))
 	if err != nil {
 		return nil, &ClientError{Message: "network error", Url: url, Err: err}
 	}
@@ -148,13 +148,28 @@ func (c *Client) setHeaders(req *corehttp.Request) {
 	}
 }
 
-func (c *Client) logNewRequest(method string, url string) {
+func (c *Client) executeWithRetry(request *corehttp.Request, responseBody interface{}) error {
+	return c.retry.Execute(func() error {
+		startTime := time.Now()
+		c.logNewRequest(request.Method, request.URL)
+		response, err := c.client.Do(request)
+		encapsulatedErr := c.readResponse(response, err, request.URL, responseBody)
+		c.logFinishedRequest(request.Method, request.URL, time.Now().Sub(startTime), response)
+
+		if c.shouldRetry(encapsulatedErr) {
+			return &retry.RetryableError{Err: encapsulatedErr}
+		}
+		return encapsulatedErr
+	})
+}
+
+func (c *Client) logNewRequest(method string, url *url.URL) {
 	if c.logging {
-		log.Printf("Outgoing request to [%s][%s] \n", method, url)
+		log.Printf("Outgoing request to [%s] [%s] \n", method, url)
 	}
 }
 
-func (c *Client) logFinishedRequest(method string, url string, elapsed time.Duration, response *corehttp.Response) {
+func (c *Client) logFinishedRequest(method string, url *url.URL, elapsed time.Duration, response *corehttp.Response) {
 	if !c.logging {
 		return
 	}
@@ -165,44 +180,45 @@ func (c *Client) logFinishedRequest(method string, url string, elapsed time.Dura
 	}
 }
 
-func (c *Client) executeWithRetry(request *corehttp.Request) (*corehttp.Response, error) {
-	response, err := c.retry.Execute(func() (*corehttp.Response, error) {
-		startTime := time.Now()
-		c.logNewRequest(request.Method, request.URL.String())
-		response, err := c.client.Do(request)
-		c.logFinishedRequest(request.Method, request.URL.String(), time.Now().Sub(startTime), response)
-		if shouldRetry(response, err) {
-			return response, &retry.RetryableError{Err: err}
-		}
-		return response, err
-	})
-
-	if response != nil && response.StatusCode >= 400 {
-		return response, &ClientHttpError{Url: request.URL.String(), StatusCode: response.StatusCode}
+func (c *Client) readResponse(response *corehttp.Response, err error, url *url.URL, responseBody interface{}) error {
+	if err != nil || response == nil {
+		return &ClientError{Message: "network error", Url: url, Err: err, IsRetryable: true}
 	}
 
-	if err != nil {
-		return response, &ClientError{Message: "network error", Url: request.URL.String(), Err: err}
-	}
-
-	return response, nil
-}
-
-func shouldRetry(response *corehttp.Response, err error) bool {
-	return err != nil || response == nil || response.StatusCode >= 500
-}
-
-func readResponse(response *corehttp.Response, err error, url string, responseBody interface{}) error {
 	buffer, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
 
 	if err != nil {
-		return &ClientError{Message: "io error", Url: url, Err: err}
+		return &ClientError{Message: "io error", Url: url, Err: err, IsRetryable: false}
 	}
 
+	if response.StatusCode >= 400 {
+		return &ClientHttpError{Url: url, StatusCode: response.StatusCode, ResponseBody: buffer, IsRetryable: response.StatusCode >= 500}
+	}
+
+	if responseBody == nil {
+		return nil
+	}
 	err = json.Unmarshal(buffer, responseBody)
 	if err != nil {
-		return &ClientError{Message: "parsing error", Url: url, Err: err}
+		return &ClientError{Message: "parsing error", Url: url, Err: err, IsRetryable: false}
 	}
 	return nil
+}
+
+func (c *Client) shouldRetry(err error) bool {
+	switch err.(type) {
+	case *ClientError:
+		var clientError *ClientError
+		errors.As(err, &clientError)
+		return clientError.IsRetryable
+	case *ClientHttpError:
+		var clientError *ClientHttpError
+		errors.As(err, &clientError)
+		return clientError.IsRetryable
+	case nil:
+		return false
+	default:
+		return true
+	}
 }

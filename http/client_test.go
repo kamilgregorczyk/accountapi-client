@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -94,12 +95,13 @@ func TestClient_Get(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, DummyResponse{Title: "Jan", Id: 1}))
+	serverUrl, _ := url.Parse(server.URL)
 
 	defer server.Close()
 
 	t.Logf("When calling GET")
 	var dummyResponse DummyResponse
-	err := client.Get(context.Background(), server.URL, &dummyResponse)
+	err := client.Get(context.Background(), serverUrl, &dummyResponse)
 
 	t.Logf("Should return DummyResponse")
 	assert.NoError(t, err)
@@ -116,18 +118,19 @@ func TestClient_GetWithHttpError(t *testing.T) {
 	mux.Handle("/500", requestHandler(500, &callCount))
 	mux.Handle("/503", requestHandler(503, &callCount))
 	server := httptest.NewServer(mux)
+	serverUrl, _ := url.Parse(server.URL)
 	defer server.Close()
 
 	testCases := []struct {
 		StatusCode    int
 		CallCount     int
-		Url           string
+		Url           *url.URL
 		ExpectedError error
 	}{
-		{StatusCode: 400, CallCount: 1, Url: server.URL + "/400", ExpectedError: &ClientHttpError{Url: server.URL + "/400", StatusCode: 400}},
-		{StatusCode: 404, CallCount: 1, Url: server.URL + "/404", ExpectedError: &ClientHttpError{Url: server.URL + "/404", StatusCode: 404}},
-		{StatusCode: 500, CallCount: 4, Url: server.URL + "/500", ExpectedError: &ClientHttpError{Url: server.URL + "/500", StatusCode: 500}},
-		{StatusCode: 503, CallCount: 4, Url: server.URL + "/503", ExpectedError: &ClientHttpError{Url: server.URL + "/503", StatusCode: 503}},
+		{StatusCode: 400, CallCount: 1, Url: serverUrl.ResolveReference(createUrl("400")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("400")), StatusCode: 400}},
+		{StatusCode: 404, CallCount: 1, Url: serverUrl.ResolveReference(createUrl("404")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("404")), StatusCode: 404}},
+		{StatusCode: 500, CallCount: 4, Url: serverUrl.ResolveReference(createUrl("500")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("500")), StatusCode: 500}},
+		{StatusCode: 503, CallCount: 4, Url: serverUrl.ResolveReference(createUrl("503")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("503")), StatusCode: 503}},
 	}
 
 	for _, testCase := range testCases {
@@ -159,15 +162,16 @@ func TestClient_GetWithResponseBodyParsingError(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, "aa"))
+	serverUrl, _ := url.Parse(server.URL)
 
 	defer server.Close()
 
 	t.Logf("When calling GET")
 	var dummyResponse DummyResponse
-	err := client.Get(context.Background(), server.URL, &dummyResponse)
+	err := client.Get(context.Background(), serverUrl, &dummyResponse)
 
 	t.Logf("Should return ClientError with parsing message")
-	assert.EqualError(t, err, (&ClientError{Message: "parsing error", Url: server.URL, Err: &json.UnmarshalTypeError{
+	assert.EqualError(t, err, (&ClientError{Message: "parsing error", Url: serverUrl, Err: &json.UnmarshalTypeError{
 		Value:  "string",
 		Type:   reflect.TypeOf(dummyResponse),
 		Offset: 4,
@@ -186,12 +190,13 @@ func TestClient_GetWithDialError(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, "aa"))
+	serverUrl, _ := url.Parse("http://localhost:3322/asdasd")
 
 	defer server.Close()
 
 	t.Logf("When calling GET")
 	var dummyResponse DummyResponse
-	err := client.Get(context.Background(), "http://localhost:3322/asdasd", &dummyResponse)
+	err := client.Get(context.Background(), serverUrl, &dummyResponse)
 
 	t.Logf("Should return ClientError with network message")
 	var expectedError *ClientError
@@ -211,13 +216,14 @@ func TestClient_Delete(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, DummyResponse{Title: "Jan", Id: 1}))
+	serverUrl, _ := url.Parse(server.URL)
 
 	defer server.Close()
 
 	t.Logf("When calling DELETE")
-	err := client.Delete(context.Background(), server.URL)
+	err := client.Delete(context.Background(), serverUrl)
 
-	t.Logf("Should return DummyResponse")
+	t.Logf("Should execute HTTP once")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, callCount["/"])
 }
@@ -231,18 +237,19 @@ func TestClient_DeleteWithHttpError(t *testing.T) {
 	mux.Handle("/500", requestHandler(500, &callCount))
 	mux.Handle("/503", requestHandler(503, &callCount))
 	server := httptest.NewServer(mux)
+	serverUrl, _ := url.Parse(server.URL)
 	defer server.Close()
 
 	testCases := []struct {
 		StatusCode    int
 		CallCount     int
-		Url           string
+		Url           *url.URL
 		ExpectedError error
 	}{
-		{StatusCode: 400, CallCount: 1, Url: server.URL + "/400", ExpectedError: &ClientHttpError{Url: server.URL + "/400", StatusCode: 400}},
-		{StatusCode: 404, CallCount: 1, Url: server.URL + "/404", ExpectedError: &ClientHttpError{Url: server.URL + "/404", StatusCode: 404}},
-		{StatusCode: 500, CallCount: 4, Url: server.URL + "/500", ExpectedError: &ClientHttpError{Url: server.URL + "/500", StatusCode: 500}},
-		{StatusCode: 503, CallCount: 4, Url: server.URL + "/503", ExpectedError: &ClientHttpError{Url: server.URL + "/503", StatusCode: 503}},
+		{StatusCode: 400, CallCount: 1, Url: serverUrl.ResolveReference(createUrl("400")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("400")), StatusCode: 400}},
+		{StatusCode: 404, CallCount: 1, Url: serverUrl.ResolveReference(createUrl("404")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("404")), StatusCode: 404}},
+		{StatusCode: 500, CallCount: 4, Url: serverUrl.ResolveReference(createUrl("500")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("500")), StatusCode: 500}},
+		{StatusCode: 503, CallCount: 4, Url: serverUrl.ResolveReference(createUrl("503")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("503")), StatusCode: 503}},
 	}
 
 	for _, testCase := range testCases {
@@ -272,11 +279,12 @@ func TestClient_DeleteWithDialError(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, "aa"))
+	serverUrl, _ := url.Parse("http://localhost:3322/asdasd")
 
 	defer server.Close()
 
 	t.Logf("When calling DELETE")
-	err := client.Delete(context.Background(), "http://localhost:3322/asdasd")
+	err := client.Delete(context.Background(), serverUrl)
 
 	t.Logf("Should return ClientError with network message")
 	var expectedError *ClientError
@@ -295,12 +303,13 @@ func TestClient_Post(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, DummyResponse{Title: "Jan", Id: 1}))
+	serverUrl, _ := url.Parse(server.URL)
 
 	defer server.Close()
 
 	t.Logf("When calling POST with request")
 	var dummyResponse DummyResponse
-	err := client.Post(context.Background(), server.URL, &DummyRequest{Title: "Jan"}, &dummyResponse)
+	err := client.Post(context.Background(), serverUrl, &DummyRequest{Title: "Jan"}, &dummyResponse)
 
 	t.Logf("Should return DummyResponse")
 	assert.NoError(t, err)
@@ -317,18 +326,19 @@ func TestClient_PostWithHttpError(t *testing.T) {
 	mux.Handle("/500", requestHandler(500, &callCount))
 	mux.Handle("/503", requestHandler(503, &callCount))
 	server := httptest.NewServer(mux)
+	serverUrl, _ := url.Parse(server.URL)
 	defer server.Close()
 
 	testCases := []struct {
 		StatusCode    int
 		CallCount     int
-		Url           string
+		Url           *url.URL
 		ExpectedError error
 	}{
-		{StatusCode: 400, CallCount: 1, Url: server.URL + "/400", ExpectedError: &ClientHttpError{Url: server.URL + "/400", StatusCode: 400}},
-		{StatusCode: 404, CallCount: 1, Url: server.URL + "/404", ExpectedError: &ClientHttpError{Url: server.URL + "/404", StatusCode: 404}},
-		{StatusCode: 500, CallCount: 4, Url: server.URL + "/500", ExpectedError: &ClientHttpError{Url: server.URL + "/500", StatusCode: 500}},
-		{StatusCode: 503, CallCount: 4, Url: server.URL + "/503", ExpectedError: &ClientHttpError{Url: server.URL + "/503", StatusCode: 503}},
+		{StatusCode: 400, CallCount: 1, Url: serverUrl.ResolveReference(createUrl("400")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("400")), StatusCode: 400}},
+		{StatusCode: 404, CallCount: 1, Url: serverUrl.ResolveReference(createUrl("404")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("404")), StatusCode: 404}},
+		{StatusCode: 500, CallCount: 4, Url: serverUrl.ResolveReference(createUrl("500")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("500")), StatusCode: 500}},
+		{StatusCode: 503, CallCount: 4, Url: serverUrl.ResolveReference(createUrl("503")), ExpectedError: &ClientHttpError{Url: serverUrl.ResolveReference(createUrl("503")), StatusCode: 503}},
 	}
 
 	for _, testCase := range testCases {
@@ -360,15 +370,16 @@ func TestClient_PostWithResponseBodyParsingError(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, "aa"))
+	serverUrl, _ := url.Parse(server.URL)
 
 	defer server.Close()
 
 	t.Logf("When calling POST")
 	var dummyResponse DummyResponse
-	err := client.Post(context.Background(), server.URL, &DummyRequest{Title: "Jan"}, &dummyResponse)
+	err := client.Post(context.Background(), serverUrl, &DummyRequest{Title: "Jan"}, &dummyResponse)
 
 	t.Logf("Should return ClientError with parsing message")
-	assert.EqualError(t, err, (&ClientError{Message: "parsing error", Url: server.URL, Err: &json.UnmarshalTypeError{
+	assert.EqualError(t, err, (&ClientError{Message: "parsing error", Url: serverUrl, Err: &json.UnmarshalTypeError{
 		Value:  "string",
 		Type:   reflect.TypeOf(dummyResponse),
 		Offset: 4,
@@ -387,16 +398,17 @@ func TestClient_PostWithRequestBodyParsingError(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, DummyResponse{Title: "Jan", Id: 1}))
+	serverUrl, _ := url.Parse(server.URL)
 
 	defer server.Close()
 
 	t.Logf("When calling POST")
 	var dummyResponse DummyResponse
-	err := client.Post(context.Background(), server.URL, func() {}, &dummyResponse)
+	err := client.Post(context.Background(), serverUrl, func() {}, &dummyResponse)
 
 	t.Logf("Should return ClientError with parsing message")
 	assert.EqualError(t, err, (&ClientError{Message: "body parse error",
-		Url: server.URL,
+		Url: serverUrl,
 		Err: &json.UnsupportedTypeError{Type: reflect.TypeOf(func() {})},
 	}).Error())
 	assert.Equal(t, DummyResponse{}, dummyResponse)
@@ -413,12 +425,13 @@ func TestClient_PostWithDialError(t *testing.T) {
 	t.Logf("And HTTP server returning 200 status")
 	callCount := make(map[string]int)
 	server := httptest.NewServer(requestHandlerWithBody(200, &callCount, "aa"))
+	serverUrl, _ := url.Parse("http://localhost:3322/asdasd")
 
 	defer server.Close()
 
 	t.Logf("When calling POST on unknown URL")
 	var dummyResponse DummyResponse
-	err := client.Post(context.Background(), "http://localhost:3322/asdasd", &DummyRequest{Title: "Jan"}, &dummyResponse)
+	err := client.Post(context.Background(), serverUrl, &DummyRequest{Title: "Jan"}, &dummyResponse)
 
 	t.Logf("Should return ClientError with network message")
 	var expectedError *ClientError
@@ -441,4 +454,9 @@ func requestHandlerWithBody(statusCode int, callCount *map[string]int, responseB
 			res.Write(js)
 		}
 	}
+}
+
+func createUrl(value string) *url.URL {
+	result, _ := url.Parse(value)
+	return result
 }
