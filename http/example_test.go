@@ -2,7 +2,7 @@ package http_test
 
 import (
 	"accountapi-client/http"
-	"accountapi-client/http/retry"
+	"accountapi-client/retry"
 	"context"
 	"log"
 	"net/url"

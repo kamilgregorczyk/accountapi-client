@@ -7,7 +7,7 @@ type Account struct {
 	Type           string      `json:"type,omitempty"`
 	OrganisationId string      `json:"organisation_id,omitempty"`
 	Attributes     *Attributes `json:"attributes"`
-	Version        int64       `json:"version,omitempty"`
+	Version        int         `json:"version,omitempty"`
 }
 
 // Represents custom attributes for Organisation/Account model as well as standard attributes
@@ -33,6 +33,65 @@ type Attributes struct {
 	BankIdCode              string   `json:"bank_id_code,omitempty"`
 }
 
-type Data struct {
+type SingleData struct {
 	Data *Account `json:"data"`
+}
+
+type CreateAccountRequest struct {
+	Data *Account `json:"data"`
+}
+
+type CreateAccountResponse struct {
+	Data *Account `json:"data"`
+}
+
+type FetchAccountRequest struct {
+	Id string
+}
+
+func (r *FetchAccountRequest) Validate() error {
+	if len(r.Id) <= 0 {
+		return &ValidationError{Message: "id cannot be empty"}
+	}
+	return nil
+}
+
+type FetchAccountResponse struct {
+	Data *Account `json:"data"`
+}
+
+type ListAccountsRequest struct {
+	PageNumber int
+	PageSize   int
+}
+
+func (r *ListAccountsRequest) Validate() error {
+	if r.PageNumber < 0 {
+		return &ValidationError{Message: "pageNumber has to larger than zero"}
+	}
+
+	if r.PageSize < 0 {
+		return &ValidationError{Message: "pageSize has to larger than zero"}
+	}
+	return nil
+}
+
+type ListAccountResponse struct {
+	Data []*Account `json:"data"`
+}
+
+type DeleteAccountRequest struct {
+	Id      string
+	Version int
+}
+
+func (r *DeleteAccountRequest) Validate() error {
+	if len(r.Id) <= 0 {
+		return &ValidationError{Message: "id cannot be empty"}
+	}
+
+	if r.Version < 0 {
+		return &ValidationError{Message: "version has to be larger than zero"}
+	}
+	return nil
 }

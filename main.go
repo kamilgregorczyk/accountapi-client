@@ -2,7 +2,7 @@ package main
 
 import (
 	"accountapi-client/account"
-	"accountapi-client/http/retry"
+	"accountapi-client/retry"
 	"context"
 	"github.com/google/uuid"
 	"log"
@@ -29,7 +29,7 @@ func main() {
 
 	accountId, _ := uuid.NewUUID()
 	organisationId, _ := uuid.NewUUID()
-	account, err := accountClient.Create(context.Background(), &account.Account{
+	createResponse, err := accountClient.Create(context.Background(), &account.CreateAccountRequest{Data: &account.Account{
 		Type:           "accounts",
 		Id:             accountId.String(),
 		OrganisationId: organisationId.String(),
@@ -40,27 +40,35 @@ func main() {
 			BankIdCode:   "GBDSC",
 			Bic:          "NWBKGB22",
 		},
-	})
+	}})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%+v", account)
+	log.Printf("%+v", createResponse.Data)
 
-	account, err = accountClient.Fetch(context.Background(), accountId.String())
+	fetchResponse, err := accountClient.Fetch(context.Background(), &account.FetchAccountRequest{Id: createResponse.Data.Id})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%+v", account)
+	log.Printf("%+v", fetchResponse.Data)
 
-	err = accountClient.Delete(context.Background(), accountId.String(), account.Version)
+	err = accountClient.Delete(context.Background(), &account.DeleteAccountRequest{Id: fetchResponse.Data.Id, Version: fetchResponse.Data.Version})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Printf("Account should be deleted, lets check...")
 
-	_, err = accountClient.Fetch(context.Background(), accountId.String())
+	_, err = accountClient.Fetch(context.Background(), &account.FetchAccountRequest{Id: fetchResponse.Data.Id})
 	if err != nil {
 		log.Println("Account does not exist!")
 	}
+
+	listResponse, err := accountClient.List(context.Background(), &account.ListAccountsRequest{PageSize: 1000000, PageNumber: 0})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("%d", len(listResponse.Data))
+
 }

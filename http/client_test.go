@@ -1,7 +1,7 @@
 package http
 
 import (
-	"accountapi-client/http/retry"
+	"accountapi-client/retry"
 	"context"
 	"encoding/json"
 	"errors"

@@ -1,7 +1,7 @@
 package retry_test
 
 import (
-	retries "accountapi-client/http/retry"
+	retries "accountapi-client/retry"
 	"log"
 	"net/http"
 	"time"

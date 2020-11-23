@@ -3,16 +3,16 @@
 // and by encapsulating all the errors that can happen along the way under once common format.
 //
 // The NewClient function creates a new instance of the Client by providing ClientConfig.
-// It is required to pass all the fields from that config
+// It is required to pass all the fields from that config.
 //
 // For the time being it only provides GET, POST and DELETE operations.
 //
-//
+// All calls support retries which can be defined in ClientConfig via retry.RetriesConfig, if you wish to disable them then set MaxRetries to 0
 //
 package http
 
 import (
-	"accountapi-client/http/retry"
+	"accountapi-client/retry"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -40,16 +40,16 @@ type Client struct {
 
 type Headers map[string]string
 
-// Creates a new instance of the Client
+// Creates a new instance of the Client.
 //
 // If ClientConfig.Timeout is zero or bellow it returns TimeoutZeroError.
 //
 // If ClientConfig.RetriesConfig has any errors, those will be also returned to the caller,
-// not providing those values is not possible as retries are required on all of the endpoints
+// not providing those values is not possible as retries are required on all of the endpoints.
 //
-// If Headers won't be empty, all the headers will be set on every outgoing http request
+// If Headers won't be empty, all the headers will be set on every outgoing http request.
 //
-// If Logging is enabled, every outgoing request will be logged along with its execution time, including retries
+// If Logging is enabled, every outgoing request will be logged along with its execution time, including retries.
 func NewClient(config ClientConfig) (*Client, error) {
 	if config.Timeout.Milliseconds() <= 0 {
 		return nil, TimeoutZeroError
@@ -88,11 +88,11 @@ func (c *Client) Get(ctx context.Context, url *url.URL, responseBody interface{}
 	return nil
 }
 
-// Runs DELETE HTTP query for provided url, responseBody (pointer) will be written by json.Unmarshal.
+// Runs DELETE HTTP query for provided url.
 //
 // In case of network, parsing or io error (non http related) it will return ClientError.
 //
-// In case of an http related error (>400 status code) it will return ClientHttpError along with returned status code.
+// In case of an http related error (>400 status code) it will return ClientHttpError along with returned status code & body.
 func (c *Client) Delete(ctx context.Context, url *url.URL) error {
 	method := "DELETE"
 	request, err := c.createRequest(ctx, method, url, nil)
@@ -150,11 +150,11 @@ func (c *Client) setHeaders(req *corehttp.Request) {
 
 func (c *Client) executeWithRetry(request *corehttp.Request, responseBody interface{}) error {
 	return c.retry.Execute(func() error {
-		startTime := time.Now()
 		c.logNewRequest(request.Method, request.URL)
+		startTime := time.Now()
 		response, err := c.client.Do(request)
-		encapsulatedErr := c.readResponse(response, err, request.URL, responseBody)
 		c.logFinishedRequest(request.Method, request.URL, time.Now().Sub(startTime), response)
+		encapsulatedErr := c.readResponse(response, err, request.URL, responseBody)
 
 		if c.shouldRetry(encapsulatedErr) {
 			return &retry.RetryableError{Err: encapsulatedErr}
