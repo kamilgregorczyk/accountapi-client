@@ -1,6 +1,6 @@
 package account
 
-// Throw by the InventoryClient on validation issues done before sending any http requests
+// Throw by the Client on validation issues done before sending any http requests
 type ValidationError struct {
 	Message string
 }

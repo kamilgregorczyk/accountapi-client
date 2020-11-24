@@ -1,6 +1,9 @@
 package account
 
-import "time"
+import (
+	"github.com/google/uuid"
+	"time"
+)
 
 // Represents top level model for Organisation/Account model
 // Look into https://api-docs.form3.tech/api.html#organisation-accounts-resource for more details
@@ -41,6 +44,30 @@ type CreateAccountRequest struct {
 	Account *Account `json:"data"`
 }
 
+func (r *CreateAccountRequest) Validate() error {
+	if len(r.Account.Id) == 0 {
+		return &ValidationError{Message: "id cannot be empty"}
+	}
+
+	if _, err := uuid.Parse(r.Account.Id); err != nil {
+		return &ValidationError{Message: "id has to be UUID V1"}
+	}
+
+	if len(r.Account.OrganisationId) == 0 {
+		return &ValidationError{Message: "organisationId cannot be empty"}
+	}
+
+	if _, err := uuid.Parse(r.Account.OrganisationId); err != nil {
+		return &ValidationError{Message: "organisationId has to be UUID V1"}
+	}
+
+	if len(r.Account.Attributes.Country) == 0 {
+		return &ValidationError{Message: "country cannot be empty"}
+	}
+
+	return nil
+}
+
 type CreateAccountResponse struct {
 	Account *Account `json:"data"`
 }
@@ -53,6 +80,11 @@ func (r *FetchAccountRequest) Validate() error {
 	if len(r.Id) <= 0 {
 		return &ValidationError{Message: "id cannot be empty"}
 	}
+
+	if _, err := uuid.Parse(r.Id); err != nil {
+		return &ValidationError{Message: "id has to be UUID V1"}
+	}
+
 	return nil
 }
 
@@ -67,11 +99,11 @@ type ListAccountsRequest struct {
 
 func (r *ListAccountsRequest) Validate() error {
 	if r.PageNumber < 0 {
-		return &ValidationError{Message: "pageNumber has to larger than zero"}
+		return &ValidationError{Message: "pageNumber has to be larger than zero"}
 	}
 
 	if r.PageSize < 0 {
-		return &ValidationError{Message: "pageSize has to larger than zero"}
+		return &ValidationError{Message: "pageSize has to be larger than zero"}
 	}
 	return nil
 }
@@ -88,6 +120,10 @@ type DeleteAccountRequest struct {
 func (r *DeleteAccountRequest) Validate() error {
 	if len(r.Id) <= 0 {
 		return &ValidationError{Message: "id cannot be empty"}
+	}
+
+	if _, err := uuid.Parse(r.Id); err != nil {
+		return &ValidationError{Message: "id has to be UUID V1"}
 	}
 
 	if r.Version < 0 {

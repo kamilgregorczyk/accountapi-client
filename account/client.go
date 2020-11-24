@@ -72,6 +72,12 @@ func NewClient(config ClientConfig) (*Client, error) {
 //
 // In case of an http related error (>400 status code) it will return ClientHttpError along with returned status code.
 func (c *Client) Create(ctx context.Context, request *CreateAccountRequest) (*CreateAccountResponse, error) {
+	err := request.Validate()
+
+	if err != nil {
+		return nil, err
+	}
+
 	path, err := url.ParseRequestURI(fmt.Sprintf("%s/v1/organisation/accounts", c.Url.String()))
 	if err != nil {
 		return nil, err

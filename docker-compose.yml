@@ -4,6 +4,11 @@ services:
   accountapi:
     image: form3tech/interview-accountapi:v1.0.0-4-g63cf8434
     restart: on-failure
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/health" ]
+      timeout: 5s
+      interval: 5s
+      retries: 3
     depends_on:
       - postgresql
       - vault
@@ -21,6 +26,7 @@ services:
       - DATABASE-PASSWORD=123
     ports:
       - 8080:8080
+    entrypoint: sh -c "while ! nc -z postgresql 5432; do sleep 1; done; /app/entrypoint.sh"
   postgresql:
     image: postgres:9.5-alpine
     healthcheck:

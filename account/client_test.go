@@ -93,6 +93,60 @@ func TestClientCreate(t *testing.T) {
 	deleteAccount(client, response.Account)
 }
 
+func TestClientCreateWithValidationErrors(t *testing.T) {
+	testCases := []struct {
+		Request       *CreateAccountRequest
+		ExpectedError error
+	}{
+		{
+			Request: &CreateAccountRequest{Account: &Account{
+				Id:             "",
+				OrganisationId: generateUuid(),
+				Attributes:     &Attributes{Country: "PL"}}},
+			ExpectedError: &ValidationError{Message: "id cannot be empty"},
+		},
+		{
+			Request: &CreateAccountRequest{Account: &Account{
+				Id:             "aa",
+				OrganisationId: generateUuid(),
+				Attributes:     &Attributes{Country: "PL"}}},
+			ExpectedError: &ValidationError{Message: "id has to be UUID V1"},
+		},
+		{
+			Request: &CreateAccountRequest{Account: &Account{
+				Id:             generateUuid(),
+				OrganisationId: "",
+				Attributes:     &Attributes{Country: "PL"}}},
+			ExpectedError: &ValidationError{Message: "organisationId cannot be empty"},
+		},
+		{
+			Request: &CreateAccountRequest{Account: &Account{
+				Id:             generateUuid(),
+				OrganisationId: "a",
+				Attributes:     &Attributes{Country: "PL"}}},
+			ExpectedError: &ValidationError{Message: "organisationId has to be UUID V1"},
+		},
+		{
+			Request: &CreateAccountRequest{Account: &Account{
+				Id:             generateUuid(),
+				OrganisationId: generateUuid(),
+				Attributes:     &Attributes{}}},
+			ExpectedError: &ValidationError{Message: "country cannot be empty"},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Logf("Given valid HTTP client")
+		client := initClient()
+
+		t.Logf("When creating account with invalid request")
+		response, err := client.Create(context.Background(), testCase.Request)
+
+		t.Logf("Should return %s error", testCase.ExpectedError)
+		assert.EqualError(t, err, testCase.ExpectedError.Error())
+		assert.Nil(t, response)
+	}
+}
+
 func TestClientCreateWithInValidBody(t *testing.T) {
 	t.Logf("Given valid HTTP client")
 	client := initClient()
@@ -102,7 +156,7 @@ func TestClientCreateWithInValidBody(t *testing.T) {
 		Type:           "accounts",
 		Id:             generateUuid(),
 		OrganisationId: generateUuid(),
-		Attributes:     &Attributes{},
+		Attributes:     &Attributes{Country: "XXX"},
 	}}
 
 	t.Logf("When creating account")
@@ -143,6 +197,38 @@ func TestClientFetch(t *testing.T) {
 	deleteAccount(client, response.Account)
 }
 
+func TestClientFetchWithValidationError(t *testing.T) {
+	testCases := []struct {
+		Request       *FetchAccountRequest
+		ExpectedError error
+	}{
+		{
+			Request: &FetchAccountRequest{
+				Id: "",
+			},
+			ExpectedError: &ValidationError{Message: "id cannot be empty"},
+		},
+		{
+			Request: &FetchAccountRequest{
+				Id: "aa",
+			},
+			ExpectedError: &ValidationError{Message: "id has to be UUID V1"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Logf("Given valid HTTP client")
+		client := initClient()
+
+		t.Logf("When fetching account")
+		response, err := client.Fetch(context.Background(), testCase.Request)
+
+		t.Logf("Should return %s error", testCase.ExpectedError)
+		assert.EqualError(t, err, testCase.ExpectedError.Error())
+		assert.Nil(t, response)
+	}
+}
+
 func TestClientFetchWithInValidId(t *testing.T) {
 	t.Logf("Given valid HTTP client")
 	client := initClient()
@@ -178,21 +264,43 @@ func TestClientDelete(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestClientDeleteWithInvalidId(t *testing.T) {
-	t.Logf("Given valid HTTP client")
-	client := initClient()
+func TestClientDeleteWithValidationErrors(t *testing.T) {
+	testCases := []struct {
+		Request       *DeleteAccountRequest
+		ExpectedError error
+	}{
+		{
+			Request: &DeleteAccountRequest{
+				Id:      "",
+				Version: 0,
+			},
+			ExpectedError: &ValidationError{Message: "id cannot be empty"},
+		},
+		{
+			Request: &DeleteAccountRequest{
+				Id:      "aa",
+				Version: 0,
+			},
+			ExpectedError: &ValidationError{Message: "id has to be UUID V1"},
+		},
+		{
+			Request: &DeleteAccountRequest{
+				Id:      generateUuid(),
+				Version: -1,
+			},
+			ExpectedError: &ValidationError{Message: "version has to be larger than zero"},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Logf("Given valid HTTP client")
+		client := initClient()
 
-	t.Logf("And given valid delete request")
-	deleteRequest := DeleteAccountRequest{Id: "a", Version: 0}
+		t.Logf("When deleting account")
+		err := client.Delete(context.Background(), testCase.Request)
 
-	t.Logf("When deleting account")
-	err := client.Delete(context.Background(), &deleteRequest)
-
-	t.Logf("Should return 404 HTTP error")
-	assert.Error(t, err)
-	var expectedError *http.ClientHttpError
-	assert.True(t, errors.As(err, &expectedError))
-	assert.Equal(t, expectedError.StatusCode, 400)
+		t.Logf("Should return %s error", testCase.ExpectedError)
+		assert.EqualError(t, err, testCase.ExpectedError.Error())
+	}
 
 }
 
@@ -233,6 +341,39 @@ func TestClientList(t *testing.T) {
 
 	deleteAccount(client, response.Accounts[0])
 	deleteAccount(client, response.Accounts[1])
+}
+
+func TestClientListWithValidationErrors(t *testing.T) {
+	testCases := []struct {
+		Request       *ListAccountsRequest
+		ExpectedError error
+	}{
+		{
+			Request: &ListAccountsRequest{
+				PageNumber: -1,
+				PageSize:   1,
+			},
+			ExpectedError: &ValidationError{Message: "pageNumber has to be larger than zero"},
+		},
+		{
+			Request: &ListAccountsRequest{
+				PageNumber: 1,
+				PageSize:   -1,
+			},
+			ExpectedError: &ValidationError{Message: "pageSize has to be larger than zero"},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Logf("Given valid HTTP client")
+		client := initClient()
+
+		t.Logf("When listing account")
+		response, err := client.List(context.Background(), testCase.Request)
+
+		t.Logf("Should %s error", testCase.ExpectedError)
+		assert.EqualError(t, err, testCase.ExpectedError.Error())
+		assert.Nil(t, response)
+	}
 }
 
 func TestClientListWithPagination(t *testing.T) {
