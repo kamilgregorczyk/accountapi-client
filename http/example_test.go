@@ -12,7 +12,7 @@ import (
 func ExampleClient_Get() {
 	// Basic, valid config
 	config := http.ClientConfig{
-		Retries: retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
+		Retries: &retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
 		Timeout: time.Second,
 		Headers: http.Headers{
 			"Content-Type": "application/json",
@@ -46,7 +46,7 @@ func ExampleClient_Get() {
 func ExampleClient_Delete() {
 	// Basic, valid config
 	config := http.ClientConfig{
-		Retries: retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
+		Retries: &retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
 		Timeout: time.Second,
 		Headers: http.Headers{
 			"Content-Type": "application/json",
@@ -74,7 +74,7 @@ func ExampleClient_Delete() {
 func ExampleClient_Post() {
 	// Basic, valid config
 	config := http.ClientConfig{
-		Retries: retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
+		Retries: &retry.RetriesConfig{MaxRetries: 3, Delay: time.Millisecond, Factor: 2},
 		Timeout: time.Second,
 		Headers: http.Headers{
 			"Content-Type": "application/json",

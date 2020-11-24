@@ -1,6 +1,13 @@
 version: '3'
 
 services:
+  accountapi_client:
+    build: .
+    environment:
+      - ACCOUNT_API_URL=http://accountapi:8080
+    depends_on:
+      - accountapi
+    entrypoint: sh -c "while ! nc -z accountapi 8080; do sleep 1; done; /app/entrypoint.sh"
   accountapi:
     image: form3tech/interview-accountapi:v1.0.0-4-g63cf8434
     restart: on-failure

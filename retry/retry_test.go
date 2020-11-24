@@ -16,7 +16,7 @@ func TestNewRetriesWithValidConfig(t *testing.T) {
 	t.Logf("Given valid RetriesConfig maxRetries=%d delay=%s factor=%0.2f", config.MaxRetries, config.Delay, config.Factor)
 
 	t.Logf("When creating Retry")
-	retry, err := NewRetries(config)
+	retry, err := NewRetries(&config)
 
 	t.Logf("Should not return any errors")
 
@@ -47,7 +47,7 @@ func TestNewRetriesWithInValidConfig(t *testing.T) {
 		}
 
 		t.Logf("When creating Retry")
-		retry, err := NewRetries(config)
+		retry, err := NewRetries(&config)
 
 		t.Logf("Should return '%s' error", testCase.ExpectedError)
 		assert.EqualError(t, err, testCase.ExpectedError.Error())
@@ -66,7 +66,7 @@ func TestRetryWithSuccessAtFirstTry(t *testing.T) {
 		Factor:     factor,
 	}
 	t.Logf("And given Retry")
-	retry, _ := NewRetries(config)
+	retry, _ := NewRetries(&config)
 
 	t.Logf("And given a func to run")
 	var callCount int
@@ -96,7 +96,7 @@ func TestRetryWithInitialFailuresAndThenSuccess(t *testing.T) {
 			Factor:     factor,
 		}
 		t.Logf("And given Retry")
-		retry, _ := NewRetries(config)
+		retry, _ := NewRetries(&config)
 
 		t.Logf("And given a func to run")
 		var callCount int
@@ -131,7 +131,7 @@ func TestRetryWithConstantFailures(t *testing.T) {
 		Factor:     factor,
 	}
 	t.Logf("And given Retry")
-	retry, _ := NewRetries(config)
+	retry, _ := NewRetries(&config)
 
 	t.Logf("And given a func to run")
 	var callCount int
@@ -179,7 +179,7 @@ func TestExponentialBackoff(t *testing.T) {
 			Factor:     testCase.Factor,
 		}
 		t.Logf("And given Retry")
-		retry, _ := NewRetries(config)
+		retry, _ := NewRetries(&config)
 
 		t.Logf("When calculating backoff")
 		delay := retry.next(testCase.RetryCount)
